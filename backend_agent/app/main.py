@@ -16,6 +16,15 @@ def _is_plan_query(message: str) -> bool:
     return any(keyword in message for keyword in keywords)
 
 
+def _is_term_query(message: str) -> bool:
+    term_markers = ("解释", "什么是", "介绍", "术语", "原理")
+    physics_hints = ("量子", "波函数", "叠加态", "测不准", "薛定谔", "哈密顿")
+    normalized = message.strip()
+    return any(marker in normalized for marker in term_markers) and any(
+        hint in normalized for hint in physics_hints
+    )
+
+
 def _extract_term(message: str) -> str:
     normalized = message.strip()
     prefixes = ("请解释一下", "解释一下", "解释", "什么是", "请介绍一下", "介绍一下")
@@ -46,6 +55,12 @@ def build_chat_response(message: str) -> dict[str, object]:
             f"开发者理解：{term_data['developer_view']}"
         )
         return {"intent": "quantum_term", "answer": answer, "data": term_data}
+    if _is_term_query(message):
+        return {
+            "intent": "quantum_term",
+            "answer": f"本地资料中没有找到“{term}”，请先把这个术语补充进 quantum_terms.json。",
+            "data": {"term": term, "source": "local_json", "found": False},
+        }
 
     answer = run_agent(message)
     return {"intent": "general", "answer": answer, "data": {"source": "model"}}

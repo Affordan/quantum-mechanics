@@ -27,6 +27,8 @@ def test_lookup_quantum_term_handles_unknown_term():
 def test_lookup_quantum_term_payload_returns_structured_data():
     result = lookup_quantum_term_payload("叠加态")
     assert result is not None
+    assert result["source"] == "local_json"
+    assert result["found"] is True
     assert result["term"] == "叠加态"
     assert "线性组合" in result["definition"]
 
@@ -34,5 +36,13 @@ def test_lookup_quantum_term_payload_returns_structured_data():
 def test_get_project_plan_payload_returns_lists():
     result = get_project_plan_payload("量子力学学习助手")
     assert result["project_name"] == "量子力学学习助手"
+    assert result["source"] == "local_plan"
     assert isinstance(result["steps"], list)
     assert isinstance(result["materials"], list)
+
+
+def test_lookup_quantum_term_payload_supports_three_core_terms():
+    for term in ("波函数", "叠加态", "测不准原理"):
+        result = lookup_quantum_term_payload(term)
+        assert result is not None
+        assert result["term"] == term

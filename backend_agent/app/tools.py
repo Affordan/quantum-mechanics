@@ -28,12 +28,13 @@ PROJECT_PLAN_MATERIALS = [
 def get_project_plan_payload(project_name: str) -> dict[str, object]:
     return {
         "project_name": project_name,
+        "source": "local_plan",
         "steps": PROJECT_PLAN_STEPS,
         "materials": PROJECT_PLAN_MATERIALS,
     }
 
 
-def lookup_quantum_term_payload(term: str) -> dict[str, str] | None:
+def lookup_quantum_term_payload(term: str) -> dict[str, object] | None:
     if not DATA_PATH.exists():
         return None
 
@@ -43,6 +44,8 @@ def lookup_quantum_term_payload(term: str) -> dict[str, str] | None:
         item = data[term]
         return {
             "term": term,
+            "source": "local_json",
+            "found": True,
             "definition": item["definition"],
             "developer_view": item["developer_view"],
         }
@@ -51,6 +54,8 @@ def lookup_quantum_term_payload(term: str) -> dict[str, str] | None:
         if term in key or key in term:
             return {
                 "term": key,
+                "source": "local_json",
+                "found": True,
                 "definition": item["definition"],
                 "developer_view": item["developer_view"],
             }
