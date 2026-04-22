@@ -309,8 +309,4 @@ backend_agent/data/raw_pdfs/
 - 前端界面
 - 数据库持久化
 
-## 进一步说明
 
-如果你只关心后端内部实现，可以继续查看：
-
-- [backend_agent/README.md](backend_agent/README.md)
