@@ -8,7 +8,7 @@ from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 
 from .prompts import SYSTEM_PROMPT
-from .tools import get_project_plan, lookup_quantum_term
+from .tools import get_project_plan, lookup_quantum_term, search_quantum_source
 
 ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
@@ -30,7 +30,7 @@ def build_agent():
 
     return create_agent(
         model=model,
-        tools=[get_project_plan, lookup_quantum_term],
+        tools=[get_project_plan, lookup_quantum_term, search_quantum_source],
         system_prompt=SYSTEM_PROMPT,
     )
 

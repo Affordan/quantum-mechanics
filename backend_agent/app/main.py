@@ -2,7 +2,12 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from .agent import run_agent
-from .tools import get_project_plan_payload, lookup_quantum_term_payload
+from .tools import (
+    get_project_plan,
+    lookup_quantum_term,
+    lookup_quantum_term_payload,
+    search_quantum_source,
+)
 
 app = FastAPI(title="Quantum Agent Backend")
 
@@ -14,6 +19,26 @@ class ChatRequest(BaseModel):
 def _is_plan_query(message: str) -> bool:
     keywords = ("计划", "先做什么", "资料", "开发计划", "补充")
     return any(keyword in message for keyword in keywords)
+
+
+def _is_source_query(message: str) -> bool:
+    source_markers = ("资料", "来源", "出处", "参考", "pdf", "PDF", "讲义", "哪本", "哪个", "材料")
+    physics_hints = (
+        "量子",
+        "波函数",
+        "叠加态",
+        "测不准",
+        "薛定谔",
+        "哈密顿",
+        "本征",
+        "纠缠",
+        "量子比特",
+        "量子门",
+    )
+    normalized = message.strip()
+    return any(marker in normalized for marker in source_markers) and any(
+        hint in normalized for hint in physics_hints
+    )
 
 
 def _is_term_query(message: str) -> bool:
@@ -41,29 +66,38 @@ def _extract_term(message: str) -> str:
     return normalized
 
 
-def build_chat_response(message: str) -> dict[str, object]:
-    if _is_plan_query(message):
-        data = get_project_plan_payload("量子力学学习助手")
-        answer = "最小开发计划已整理完成，可直接查看步骤和资料清单。"
-        return {"intent": "project_plan", "answer": answer, "data": data}
+def _should_use_local_term_lookup(term: str) -> bool:
+    normalized_term = term.strip()
+    if not normalized_term:
+        return False
 
-    term = _extract_term(message)
-    term_data = lookup_quantum_term_payload(term)
-    if term_data is not None:
-        answer = (
-            f"{term_data['term']}：{term_data['definition']} "
-            f"开发者理解：{term_data['developer_view']}"
-        )
-        return {"intent": "quantum_term", "answer": answer, "data": term_data}
-    if _is_term_query(message):
-        return {
-            "intent": "quantum_term",
-            "answer": f"本地资料中没有找到“{term}”，请先把这个术语补充进 quantum_terms.json。",
-            "data": {"term": term, "source": "local_json", "found": False},
-        }
+    if lookup_quantum_term_payload(normalized_term) is not None:
+        return True
 
-    answer = run_agent(message)
-    return {"intent": "general", "answer": answer, "data": {"source": "model"}}
+    complex_markers = ("区别", "为什么", "如何", "怎么", "作用", "应用", "影响", "比较", "联系", "举例", "一句话")
+    if any(marker in normalized_term for marker in complex_markers):
+        return False
+
+    return len(normalized_term) <= 12
+
+
+def build_chat_answer(message: str) -> str:
+    normalized = message.strip()
+    if not normalized:
+        return "请输入问题内容，例如“请解释一下叠加态”或“有哪些资料可以帮助我理解波函数？”。"
+
+    if _is_source_query(normalized):
+        return search_quantum_source.invoke({"query": normalized})
+
+    if _is_plan_query(normalized):
+        return get_project_plan.invoke({"project_name": "量子力学学习助手"})
+
+    if _is_term_query(normalized):
+        term = _extract_term(normalized)
+        if _should_use_local_term_lookup(term):
+            return lookup_quantum_term.invoke({"term": term})
+
+    return run_agent(normalized)
 
 
 @app.get("/health")
@@ -72,5 +106,5 @@ def health() -> dict[str, str]:
 
 
 @app.post("/chat")
-def chat(req: ChatRequest) -> dict[str, object]:
-    return build_chat_response(req.message)
+def chat(req: ChatRequest) -> dict[str, str]:
+    return {"answer": build_chat_answer(req.message)}

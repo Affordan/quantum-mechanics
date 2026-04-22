@@ -2,3 +2,7 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 backend_agent/.env
+backend_agent/data/raw_pdfs/
+quantum_pdf_bundle/
+quantum_pdf_bundle.zip
+AGENTS.md
